@@ -1,0 +1,18 @@
+.schema = create table crimes(id integer, caseNumber text, dateTime text, streetBlock text, iucr integer, primaryType text,
+description text, beat integer, district integer, latitude real, longitude real);
+
+{
+  "rows" : [
+    {
+      "ID" : "10508693",
+      "Case Number" : "HZ250496",
+      "Date" : "5/3/2016 23:40",
+      "Block" : "013XX S SAWYER AVE",
+      "IUCR" : "0486",
+      "Primary Type" : "BATTERY",
+      "Description" : "DOMESTIC BATTERY SIMPLE",
+      "Beat" : "1022",
+      "District" : "10.0",
+      "Latitude" : "41.864073157",
+      "Longitude" : "-87.706818608"
+    },

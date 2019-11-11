@@ -1,2 +1,2 @@
-# ChicagoCrime
-View Chicago Crimes graphically
+# SoftwareEngineering
+Software Engineering Class
