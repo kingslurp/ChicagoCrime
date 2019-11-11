@@ -18,19 +18,22 @@ class sqlconnect:
             print(e)
         return conn
 
-    def queryIUCR(self, conn):
+
+    # Query Method for finding all items with a given IUCR record number
+    def queryIUCR(self, conn, iucr_num):
         with conn:
-            sql = ("SELECT * crimes WHERE iucr LIKE ?", ('0486',))
-            cur = conn.cursor()
-            cur.execute(sql)
-        return cur.lastrowid
+            cursor = conn.cursor()
+            cursor.execute("SELECT * FROM crimes WHERE iucr LIKE {it}".format(it=iucr_num))
+            ids = cursor.fetchall()
+        return ids
+
 
 def main():
     connecto = sqlconnect()
     conn = connecto.create_connection()
     with conn:
-        team_id = connecto.queryIUCR(connecto)
-        print(str(team_id))
+        crime_id = connecto.queryIUCR(conn, '0486')
+        print(str(crime_id))
 
 if __name__ == '__main__':
     main()
