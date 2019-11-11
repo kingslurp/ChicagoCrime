@@ -13,6 +13,13 @@ class PythonGUI(tk.Frame):  # GUI Class
         tk.Button(self, text='Start', default='active', command=self.click_start).pack(side='left')
         tk.Button(self, text='Cancel', command=self.click_cancel).pack(side='right')
 
+        # Listbox for user to select the items they are interested in
+        listbox = tk.Listbox(master, selectmode=tk.MULTIPLE)
+        listbox.pack(side='left')
+        for item in ["ID", "Case #", "Date", "Block", "IUCR", "Primary Type", "Description", "Beat", "District", "Latitude", "Longitude"]:
+            listbox.insert(tk.END, item)
+
+
     def click_start(self):
         print("The user clicked 'Start'")
 
