@@ -22,12 +22,12 @@ class PythonGUI(tk.Frame):  # GUI Class
         e2 = tk.Entry(master)
 
         # Grid Layout of Widgets
-        startLabel.grid(row=0, column=0)
-        listbox.grid(row=1, column=0)
-        startButton.grid(row=4, column=1)
-        cancelButton.grid(row=4, column=2)
-        e1.grid(row=1, column=1, sticky=tk.N)
-        e2.grid(row=2, column=1, sticky=tk.N)
+        startLabel.grid(row=0, column=0, columnspan=3)
+        listbox.grid(row=2, column=0, rowspan=11, columnspan=3)
+        startButton.grid(row=16, column=4, columnspan=2)
+        cancelButton.grid(row=16, column=6, columnspan=2)
+        e1.grid(row=1, column=5, pady=0)
+        e2.grid(row=2, column=5, pady=0)
 
     def click_start(self):
         print("The user clicked 'Start'")

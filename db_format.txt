@@ -16,3 +16,11 @@ description text, beat integer, district integer, latitude real, longitude real)
       "Latitude" : "41.864073157",
       "Longitude" : "-87.706818608"
     },
+
+
+# Design Principles
+
+Window #1: Request the user to select only the columns they wish to filter the results by
+Windows #2-x: Request the user to further specify the details of the filters they chose in Window #1
+--> Background processing of user selected filters and data to be filtered for each to create SQLlite query -->
+Results Window: Ask the user to confirm the results to be mapped --> Create the map.html file using the results
