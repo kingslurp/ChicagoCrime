@@ -7,18 +7,27 @@ import tkinter as tk
 class PythonGUI(tk.Frame):  # GUI Class
     def __init__(self, master):
         tk.Frame.__init__(self, master)
-        self.pack()
         self.master.title("Chicago Crime Map")
-        tk.Label(self, text="Click 'Start' to Begin").pack()
-        tk.Button(self, text='Start', default='active', command=self.click_start).pack(side='left')
-        tk.Button(self, text='Cancel', command=self.click_cancel).pack(side='right')
+        startLabel = tk.Label(self.master, text="Click 'Start' to Begin")
+        startButton = tk.Button(self.master, text='Start', default='active', command=self.click_start)
+        cancelButton = tk.Button(self.master, text='Cancel', command=self.click_cancel)
 
         # Listbox for user to select the items they are interested in
         listbox = tk.Listbox(master, selectmode=tk.MULTIPLE)
-        listbox.pack(side='left')
         for item in ["ID", "Case #", "Date", "Block", "IUCR", "Primary Type", "Description", "Beat", "District", "Latitude", "Longitude"]:
             listbox.insert(tk.END, item)
 
+        # Entry boxes for information to be entered
+        e1 = tk.Entry(master)
+        e2 = tk.Entry(master)
+
+        # Grid Layout of Widgets
+        startLabel.grid(row=0, column=0)
+        listbox.grid(row=1, column=0)
+        startButton.grid(row=4, column=1)
+        cancelButton.grid(row=4, column=2)
+        e1.grid(row=1, column=1, sticky=tk.N)
+        e2.grid(row=2, column=1, sticky=tk.N)
 
     def click_start(self):
         print("The user clicked 'Start'")
