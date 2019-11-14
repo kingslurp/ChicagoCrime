@@ -2,6 +2,7 @@ import sqlite3
 from sqlite3 import Error
 import os
 import PySimpleGUI as sg
+from geopy import *
 
 
 class sqlconnect:
@@ -29,12 +30,41 @@ class sqlconnect:
         return ids
 
 
+class geolocater():
+    def __init__(self):
+        print("Creating Geolocater Unit")
+
+
+    def getAddress(self, lat, long):
+        geo = Nominatim(user_agent="ChicagoCrimeQuery")
+        print("Attempting to find the closest street address for the lat / long pair: " + str(lat) + str(long))
+        latlongstr = "" + str(lat) + "," + str(long) + ""
+        location = geo.reverse(latlongstr)
+        print("The address is: " + str(location))
+
+
+    def getCoordinatePair(self, address):
+        geo = Nominatim(user_agent="ChicagoCrimeQuery")
+        print("Attempting to find the lat / long pair for the address given: ")
+        location = geo.geocode(str(address))
+        coord = "" + str(location.latitude) + ", " + str(location.longitude) + ""
+        print("Coordinates: " + coord)
+
+
+
+
 def main():
     #connobject = sqlconnect()
     #conn = connobject.create_connection()
     #with conn:
     #    crime_id = connobject.queryIUCR(conn, '0486')
     #    print(str(crime_id))
+
+
+
+    newgeo = geolocater()
+    newgeo.getAddress(33.9035792, -83.3390253)
+    newgeo.getCoordinatePair("128, Milford Dr, Georgia, 30605")
 
     # Demo of how columns work
     # GUI has on row 1 a vertical slider followed by a COLUMN with 7 rows
