@@ -4,6 +4,7 @@ import os
 import PySimpleGUI as sg
 from geopy import *
 from geopy.distance import great_circle
+import math
 
 
 class createReport:
@@ -51,6 +52,7 @@ class createReport:
             report.close()
 
 
+# -- Class for creation of the SQL connection and to handle querying from the DB for the given dataset -- #
 class sqlconnect:
     def __init__(self):
         print("init")
@@ -75,7 +77,37 @@ class sqlconnect:
             ids = cursor.fetchall()
         return ids
 
+    # -- Query to find all crimes in db within a given distance -- #
+    # TODO: Takes a tuple(lat, long) and returns all rows containing lat / long pairs within a given user-provided radius
+    def queryCrimesCloseToLatitude(self, conn, longPair, latPair):
+        with conn:
+            cursor = conn.cursor()
+            cursor.execute("SELECT * FROM crimes WHERE (Longitude <= {long} AND Longitude >= {long1}) AND (Latitude <= {lat} AND Latitude >= {lat1})").format(long=longPair[0], long1=longPair[1], lat=latPair[0], lat1=latPair[1])
+            ids = cursor.fetchall()
+        return ids
 
+
+    # -- Convert Lat / Long pair and radius in miles to find a distance from a given point in lat / long converted to miles
+    def convertLLMiles(self, latLongPair, userMiles):
+        equatorLongitude = 69.172  # 1 Degree of longitude is widest at the equator at 69.172 miles
+        latRatio = 1/69  # 1 degree of latitude / ~69 miles
+        latitude = latLongPair[0]
+        longitude = latLongPair[1]
+        latRadians = math.radians(latitude)
+        latCosine = math.cos(latRadians)
+        degreeAtLatitude = latCosine * equatorLongitude
+
+        print('Each degree of longitude at latitude: ' + str(latitude) + ' is equal to: ' + str(degreeAtLatitude) + ' miles.')
+        ratio = (1/degreeAtLatitude)
+        min = longitude - (userMiles*ratio)
+        max = longitude + (userMiles*ratio)
+        print('Therefore: the minimum & maximum longitude allowed, based on the Latitude, ' + str(latitude) + ' , and the distance, ' + str(userMiles) + ' miles, ' + ' is: ' + str(min) + ' - ' + str(max))
+        print('The longitude min-max is: ' + str(longitude - (userMiles*latRatio)) + ' - ' + str(longitude + (userMiles*latRatio)))
+        print('The latitude min-max is: ' + str(latitude - (userMiles*latRatio)) + ' - ' + str(latitude + (userMiles*latRatio)))
+
+
+
+# -- Class for translation and calculation of geocoordinates and distance values -- #
 class geolocater():
     def __init__(self):
         print("Creating Geolocater Unit")
@@ -96,11 +128,14 @@ class geolocater():
         coord = "" + str(location.latitude) + ", " + str(location.longitude) + ""
         print("Coordinates: " + coord)
 
-
+    # -- Find the distance between a pair of tuples consisting of ints (latitude, longitude)-- #
     def findDistance(self, start, finish):
         distance_mi = great_circle(start, finish).miles
         print(great_circle(start, finish).miles)
         return distance_mi
+
+
+    # TODO: F(x) to find all db entries that are within the provided distance from the user provided Chicago address:
 
 
 
@@ -121,6 +156,12 @@ def main():
     SIU = (37.7100209, -89.2247828)
     home_address = (33.9035792, -83.3390253)
     newgeo.findDistance(SIU, home_address)
+
+    # Testing conversion of lat/long pair to miles at given latitude
+    connobj = sqlconnect()
+    conn = connobj.create_connection()
+    with conn:
+        connobj.convertLLMiles([37.26383, -83.3390153], 35)
 
     # Demo of how columns work
     # GUI has on row 1 a vertical slider followed by a COLUMN with 7 rows
@@ -146,26 +187,43 @@ def main():
     # Longitude -> 367,944
 
     # -- Column Layout -- #
-    col = [[sg.Text('Input Date Range:', text_color='white'), sg.Input('Date Range', key='-date-')],
+    col = [[sg.Text('Date Range: ', text_color='white'), sg.CalendarButton('Start', key='-startdate-'), sg.CalendarButton('End', key='-enddate-')],
            [sg.Text('Select IUCR:', text_color='white'), sg.Input('Select IUCR', key='-iucr-')],
-           [sg.Text('Select Primary Type:', text_color='white'), sg.OptionMenu(primaryTypeList, 'Select Primary Type')]
+           [sg.Text('Select Primary Type:', text_color='white'), sg.OptionMenu(primaryTypeList, 'Select Primary Type', key='-primaryType-')]
            ]
 
     col1 = [[sg.Text('Here you will input an address within Chicago city limits and a distance from this address:')],
-        [sg.Text('Enter Desired Address:'), sg.Input('Address')],
-        [sg.Text('Enter Distance (mi) from Address:'), sg.Input('Distance')]]
+        [sg.Text('Enter Desired Address:'), sg.Input('Address', key='-address-')],
+        [sg.Text('Enter Distance (mi) from Address:'), sg.Input('Distance', key='-distance-')]]
 
 
     # -- GUI Definition -- #
     layout = [[sg.Text('Select all options that will display when mapped.')],
               [sg.Listbox(values=('Case #', 'Date', 'Block', 'IUCR', 'Primary Type', 'Description', 'Beat', 'District', 'Latitude', 'Longitude'),
                           select_mode=sg.LISTBOX_SELECT_MODE_MULTIPLE, no_scrollbar=True, size=(20, 12)), sg.Column(col), sg.Column(col1)],
-              [sg.OK()]]
+              [sg.OK()], [sg.Button('Submit')]]
 
 
     # -- Window event loop -- #
-    event, values = sg.Window('Chicago Crime Map', layout).Read()
-    sg.popup('Values entered: ', event, values, values['-iucr-'], line_width=200)
+    #event, values = sg.Window('Chicago Crime Map', layout).Read()
+    #sg.popup('Values entered: ', event, values, values['-iucr-'], line_width=200)
+
+    # -- Testing -- #
+    # STEP3 - the event loop
+    window = sg.Window('Chicago Crime Map', layout)
+
+    while True:
+        event, values = window.read()  # Read the event that happened and the values dictionary
+        print(event, values)
+        if event in (None, 'Exit'):  # If user closeddow with X or if user clicked "Exit" button then exit
+            break
+        if event == 'Submit':
+            print('You pressed the button')
+            print('The IUCR is: ' + values['-iucr-'])
+            print('The Address is: ' + values['-address-'])
+            print('The distance is: ' + values['-distance-'])
+            print('The primary Type selected is:' + values['-primaryType-'])
+            print('The selected date range is from: ' + str(values['-startdate-']) + ' to ' + str(values['-enddate-']))
 
 
 if __name__ == '__main__':
