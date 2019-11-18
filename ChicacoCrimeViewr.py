@@ -225,6 +225,20 @@ def main():
             print('The primary Type selected is:' + values['-primaryType-'])
             print('The selected date range is from: ' + str(values['-startdate-']) + ' to ' + str(values['-enddate-']))
 
+            queryStatement = []
+
+            if values['-iucr-'] is not None:
+                queryStatement.append(values['-iucr-'])
+            if values['-address-'] is not None:
+                queryStatement.append(values['-address-'])
+            if values['-distance-'] is not None:
+                queryStatement.append(values['-distance-'])
+            if values['-primaryType-'] is not None:
+                queryStatement.append(values['-primaryType-'])
+            if values['-startdate-'] and values['-enddate-'] is not None:
+                queryStatement.append(values['-startdate-'])
+                queryStatement.append(values['-enddate-'])
+            print(queryStatement)
 
 if __name__ == '__main__':
     main()
