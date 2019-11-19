@@ -5,6 +5,7 @@ import PySimpleGUI as sg
 from geopy import *
 from geopy.distance import great_circle
 import math
+import datetime
 
 
 class createReport:
@@ -55,6 +56,8 @@ class createReport:
 # -- Class for creation of the SQL connection and to handle querying from the DB for the given dataset -- #
 class sqlconnect:
     def __init__(self):
+        minMaxLat = []
+        minMaxLong = []
         print("init")
 
     # initiates connection to DB
@@ -87,26 +90,6 @@ class sqlconnect:
         return ids
 
 
-    # -- Convert Lat / Long pair and radius in miles to find a distance from a given point in lat / long converted to miles
-    def convertLLMiles(self, latLongPair, userMiles):
-        equatorLongitude = 69.172  # 1 Degree of longitude is widest at the equator at 69.172 miles
-        latRatio = 1/69  # 1 degree of latitude / ~69 miles
-        latitude = latLongPair[0]
-        longitude = latLongPair[1]
-        latRadians = math.radians(latitude)
-        latCosine = math.cos(latRadians)
-        degreeAtLatitude = latCosine * equatorLongitude
-
-        print('Each degree of longitude at latitude: ' + str(latitude) + ' is equal to: ' + str(degreeAtLatitude) + ' miles.')
-        ratio = (1/degreeAtLatitude)
-        min = longitude - (userMiles*ratio)
-        max = longitude + (userMiles*ratio)
-        print('Therefore: the minimum & maximum longitude allowed, based on the Latitude, ' + str(latitude) + ' , and the distance, ' + str(userMiles) + ' miles, ' + ' is: ' + str(min) + ' - ' + str(max))
-        print('The longitude min-max is: ' + str(longitude - (userMiles*latRatio)) + ' - ' + str(longitude + (userMiles*latRatio)))
-        print('The latitude min-max is: ' + str(latitude - (userMiles*latRatio)) + ' - ' + str(latitude + (userMiles*latRatio)))
-
-
-
 # -- Class for translation and calculation of geocoordinates and distance values -- #
 class geolocater():
     def __init__(self):
@@ -123,10 +106,15 @@ class geolocater():
 
     def getCoordinatePair(self, address):
         geo = Nominatim(user_agent="ChicagoCrimeQuery")
-        print("Attempting to find the lat / long pair for the address given: ")
+        #print("Attempting to find the lat / long pair for the address given: ")
         location = geo.geocode(str(address))
-        coord = "" + str(location.latitude) + ", " + str(location.longitude) + ""
-        print("Coordinates: " + coord)
+        coord = []
+        coord.append(location.latitude)
+        coord.append(location.longitude)
+        print("Coordinates: " + str(coord))
+
+        return coord
+
 
     # -- Find the distance between a pair of tuples consisting of ints (latitude, longitude)-- #
     def findDistance(self, start, finish):
@@ -136,7 +124,39 @@ class geolocater():
 
 
     # TODO: F(x) to find all db entries that are within the provided distance from the user provided Chicago address:
+    # -- Convert Lat / Long pair and radius in miles to find a distance from a given point in lat / long converted to miles
+    def convertLLMiles(self, latLongPair, userMiles):
+        # -- Static Items -- #
+        equatorLongitude = 69.172  # 1 Degree of longitude is widest at the equator at 69.172 miles
+        latRatio = 1 / 69  # 1 degree of latitude / ~69 miles
 
+        # -- Gather the information from the input -- #
+        latitude = latLongPair[0]
+        longitude = latLongPair[1]
+
+        # -- Make the conversion -- #
+        latRadians = math.radians(latitude)
+        latCosine = math.cos(latRadians)
+        degreeAtLatitude = latCosine * equatorLongitude
+        # print('Each degree of longitude at latitude: ' + str(latitude) + ' is equal to: ' + str(degreeAtLatitude) + ' miles.')
+        ratio = (1 / degreeAtLatitude)
+
+        minLong = longitude - (userMiles * ratio)
+        maxLong = longitude + (userMiles * ratio)
+        minLat = latitude - (userMiles * latRatio)
+        maxLat = latitude + (userMiles * latRatio)
+        # print('Therefore: the minimum & maximum longitude allowed, based on the Latitude, ' + str(latitude) + ' , and the distance, ' + str(userMiles) + ' miles, ' + ' is: ' + str(min) + ' - ' + str(max))
+        print('The longitude min-max is: ' + str(longitude - (userMiles * ratio)) + ' , ' + str(
+            longitude + (userMiles * ratio)))
+        print('The latitude min-max is: ' + str(latitude - (userMiles * latRatio)) + ' , ' + str(
+            latitude + (userMiles * latRatio)))
+
+        minMaxLat = [minLat, maxLat]
+        print(minMaxLat)
+        minMaxLong = [minLong, maxLong]
+        print(minMaxLong)
+
+        return minMaxLat, minMaxLong
 
 
 def main():
@@ -150,18 +170,19 @@ def main():
     new_report.createReportTemplate()
 
 
-    newgeo = geolocater()
-    newgeo.getAddress(33.9035792, -83.3390253)
-    newgeo.getCoordinatePair("128, Milford Dr, Georgia, 30605")
-    SIU = (37.7100209, -89.2247828)
-    home_address = (33.9035792, -83.3390253)
-    newgeo.findDistance(SIU, home_address)
+    #newgeo = geolocater()
+    #newgeo.getAddress(33.9035792, -83.3390253)
+    #newgeo.getCoordinatePair("128, Milford Dr, Georgia, 30605")
+    #SIU = (37.7100209, -89.2247828)
+    #home_address = (33.9035792, -83.3390253)
+    #newgeo.findDistance(SIU, home_address)
 
     # Testing conversion of lat/long pair to miles at given latitude
-    connobj = sqlconnect()
-    conn = connobj.create_connection()
-    with conn:
-        connobj.convertLLMiles([37.26383, -83.3390153], 35)
+    #connobj = sqlconnect()
+    #conn = connobj.create_connection()
+    #with conn:
+    #    connobj.convertLLMiles([37.26383, -83.3390153], 35)
+
 
     # Demo of how columns work
     # GUI has on row 1 a vertical slider followed by a COLUMN with 7 rows
@@ -201,7 +222,7 @@ def main():
     layout = [[sg.Text('Select all options that will display when mapped.')],
               [sg.Listbox(values=('Case #', 'Date', 'Block', 'IUCR', 'Primary Type', 'Description', 'Beat', 'District', 'Latitude', 'Longitude'),
                           select_mode=sg.LISTBOX_SELECT_MODE_MULTIPLE, no_scrollbar=True, size=(20, 12)), sg.Column(col), sg.Column(col1)],
-              [sg.OK()], [sg.Button('Submit')]]
+              [sg.Button('Submit')]]
 
 
     # -- Window event loop -- #
@@ -225,19 +246,29 @@ def main():
             print('The primary Type selected is:' + values['-primaryType-'])
             print('The selected date range is from: ' + str(values['-startdate-']) + ' to ' + str(values['-enddate-']))
 
+            # -- Get information from the user's input once they press the Submit -- #
             queryStatement = []
-
             if values['-iucr-'] is not None:
                 queryStatement.append(values['-iucr-'])
             if values['-address-'] is not None:
+                test = geolocater()
+                coordPair = test.getCoordinatePair(values['-address-'])
+                coordPairAnswer = test.convertLLMiles(coordPair, int(values['-distance-']))
+                print(coordPair)
+                print(coordPairAnswer)
                 queryStatement.append(values['-address-'])
+                queryStatement.append(coordPairAnswer)
             if values['-distance-'] is not None:
                 queryStatement.append(values['-distance-'])
             if values['-primaryType-'] is not None:
                 queryStatement.append(values['-primaryType-'])
-            if values['-startdate-'] and values['-enddate-'] is not None:
-                queryStatement.append(values['-startdate-'])
-                queryStatement.append(values['-enddate-'])
+            if values['-startdate-'] is not None and values['-enddate-'] is not None:
+                startdate = values['-startdate-']
+                sd = startdate.strftime("%m/%d/%Y %H:%M")
+                enddate = values['-enddate-']
+                ed = enddate.strftime("%m/%d/%Y %H:%M")
+                queryStatement.append(sd)
+                queryStatement.append(ed)
             print(queryStatement)
 
 if __name__ == '__main__':
