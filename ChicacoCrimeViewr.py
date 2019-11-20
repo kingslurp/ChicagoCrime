@@ -4,6 +4,8 @@ import os
 import PySimpleGUI as sg
 from geopy import *
 from geopy.distance import great_circle
+from geopy.extra.rate_limiter import RateLimiter
+import geopy.geocoders
 import math
 import datetime
 
@@ -105,8 +107,8 @@ class geolocater():
 
 
     def getCoordinatePair(self, address):
-        geo = Nominatim(user_agent="ChicagoCrimeQuery")
-        #print("Attempting to find the lat / long pair for the address given: ")
+        geopy.geocoders.options.default_timeout = 7
+        geo = Nominatim(user_agent="ChicagoCrimeQuery1")
         location = geo.geocode(str(address))
         coord = []
         coord.append(location.latitude)
@@ -247,22 +249,26 @@ def main():
             print('The selected date range is from: ' + str(values['-startdate-']) + ' to ' + str(values['-enddate-']))
 
             # -- Get information from the user's input once they press the Submit -- #
+            #print(values.keys())
+            #print(values.values())
             queryStatement = []
-            if values['-iucr-'] is not None:
+
+            if values.get('-iucr-') != 'Select IUCR':
+                print("IUCR IUCR: " + values['-iucr-'])
                 queryStatement.append(values['-iucr-'])
-            if values['-address-'] is not None:
+            if values.get('-address-') != 'Address':
                 test = geolocater()
-                coordPair = test.getCoordinatePair(values['-address-'])
+                coordPair = test.getCoordinatePair(str(values.get('-address-')))
                 coordPairAnswer = test.convertLLMiles(coordPair, int(values['-distance-']))
                 print(coordPair)
                 print(coordPairAnswer)
                 queryStatement.append(values['-address-'])
                 queryStatement.append(coordPairAnswer)
-            if values['-distance-'] is not None:
+            if values.get('-distance-') != 'Distance':
                 queryStatement.append(values['-distance-'])
-            if values['-primaryType-'] is not None:
+            if values.get('-primaryType-') != 'Select Primary Type':
                 queryStatement.append(values['-primaryType-'])
-            if values['-startdate-'] is not None and values['-enddate-'] is not None:
+            if values.get('-startdate-') != None and values.get('-enddate-') != None:
                 startdate = values['-startdate-']
                 sd = startdate.strftime("%m/%d/%Y %H:%M")
                 enddate = values['-enddate-']
