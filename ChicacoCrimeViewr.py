@@ -275,7 +275,11 @@ def main():
                 ed = enddate.strftime("%m/%d/%Y %H:%M")
                 queryStatement.append(sd)
                 queryStatement.append(ed)
-            print(queryStatement)
+            if len(queryStatement) >= 1:
+                print(queryStatement)
+            if len(queryStatement) == 0:
+                print("User did not input any filter requirements. Only querying the first 100 records.")
+                # TODO: Use SQL Connection object to query first 100 records and return ALL results.
 
 if __name__ == '__main__':
     main()
