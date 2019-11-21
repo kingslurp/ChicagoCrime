@@ -12,7 +12,8 @@ import datetime
 
 class createReport:
     def __init__(self):
-        print('Generating report')
+        #print('Generating report')
+        pass
 
 
     def createReportTemplate(self):
@@ -95,7 +96,8 @@ class sqlconnect:
 # -- Class for translation and calculation of geocoordinates and distance values -- #
 class geolocater():
     def __init__(self):
-        print("Creating Geolocater Unit")
+        #print("Creating Geolocater Unit")
+        pass
 
 
     def getAddress(self, lat, long):
@@ -113,7 +115,7 @@ class geolocater():
         coord = []
         coord.append(location.latitude)
         coord.append(location.longitude)
-        print("Coordinates: " + str(coord))
+        print("Translated Coordinates for address : (" + str(address) + ")"+ str(coord))
 
         return coord
 
@@ -154,9 +156,9 @@ class geolocater():
             latitude + (userMiles * latRatio)))
 
         minMaxLat = [minLat, maxLat]
-        print(minMaxLat)
+        #print(minMaxLat)
         minMaxLong = [minLong, maxLong]
-        print(minMaxLong)
+        #print(minMaxLong)
 
         return minMaxLat, minMaxLong
 
@@ -237,16 +239,16 @@ def main():
 
     while True:
         event, values = window.read()  # Read the event that happened and the values dictionary
-        print(event, values)
+        #print(event, values)
         if event in (None, 'Exit'):  # If user closeddow with X or if user clicked "Exit" button then exit
             break
         if event == 'Submit':
-            print('You pressed the button')
-            print('The IUCR is: ' + values['-iucr-'])
-            print('The Address is: ' + values['-address-'])
-            print('The distance is: ' + values['-distance-'])
-            print('The primary Type selected is:' + values['-primaryType-'])
-            print('The selected date range is from: ' + str(values['-startdate-']) + ' to ' + str(values['-enddate-']))
+            #print('You pressed the button')
+            #print('The IUCR is: ' + values['-iucr-'])
+            #print('The Address is: ' + values['-address-'])
+            #print('The distance is: ' + values['-distance-'])
+            #print('The primary Type selected is:' + values['-primaryType-'])
+            #print('The selected date range is from: ' + str(values['-startdate-']) + ' to ' + str(values['-enddate-']))
 
             # -- Get information from the user's input once they press the Submit -- #
             #print(values.keys())
@@ -254,14 +256,14 @@ def main():
             queryStatement = []
 
             if values.get('-iucr-') != 'Select IUCR':
-                print("IUCR IUCR: " + values['-iucr-'])
+                #print("IUCR IUCR: " + values['-iucr-'])
                 queryStatement.append(values['-iucr-'])
             if values.get('-address-') != 'Address':
                 test = geolocater()
                 coordPair = test.getCoordinatePair(str(values.get('-address-')))
                 coordPairAnswer = test.convertLLMiles(coordPair, int(values['-distance-']))
-                print(coordPair)
-                print(coordPairAnswer)
+                #print(coordPair)
+                #print(coordPairAnswer)
                 queryStatement.append(values['-address-'])
                 queryStatement.append(coordPairAnswer)
             if values.get('-distance-') != 'Distance':
@@ -277,6 +279,8 @@ def main():
                 queryStatement.append(ed)
             if len(queryStatement) >= 1:
                 print(queryStatement)
+                # TODO: Create custom query from results (filters) that the user expects and has input. Query the information and create the map
+                # TODO: Expand on the createReport class to allow for more methods to complete the project
             if len(queryStatement) == 0:
                 print("User did not input any filter requirements. Only querying the first 100 records.")
                 # TODO: Use SQL Connection object to query first 100 records and return ALL results.
