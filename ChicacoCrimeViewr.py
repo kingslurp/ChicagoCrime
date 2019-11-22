@@ -4,7 +4,6 @@ import os
 import PySimpleGUI as sg
 from geopy import *
 from geopy.distance import great_circle
-from geopy.extra.rate_limiter import RateLimiter
 import geopy.geocoders
 import math
 import datetime
@@ -12,7 +11,6 @@ import datetime
 
 class createReport:
     def __init__(self):
-        #print('Generating report')
         pass
 
 
@@ -61,7 +59,7 @@ class sqlconnect:
     def __init__(self):
         minMaxLat = []
         minMaxLong = []
-        print("init")
+        pass
 
     # initiates connection to DB
     def create_connection(self):
@@ -93,10 +91,18 @@ class sqlconnect:
         return ids
 
 
+    # -- Query first 100 rows -- #
+    def queryDefault(self, conn):
+        with conn:
+            cursor = conn.cursor()
+            cursor.execute("SELECT * FROM crimes LIMIT 100")
+            ids = cursor.fetchall()
+        return ids
+
+
 # -- Class for translation and calculation of geocoordinates and distance values -- #
 class geolocater():
     def __init__(self):
-        #print("Creating Geolocater Unit")
         pass
 
 
@@ -142,34 +148,24 @@ class geolocater():
         latRadians = math.radians(latitude)
         latCosine = math.cos(latRadians)
         degreeAtLatitude = latCosine * equatorLongitude
-        # print('Each degree of longitude at latitude: ' + str(latitude) + ' is equal to: ' + str(degreeAtLatitude) + ' miles.')
         ratio = (1 / degreeAtLatitude)
 
         minLong = longitude - (userMiles * ratio)
         maxLong = longitude + (userMiles * ratio)
         minLat = latitude - (userMiles * latRatio)
         maxLat = latitude + (userMiles * latRatio)
-        # print('Therefore: the minimum & maximum longitude allowed, based on the Latitude, ' + str(latitude) + ' , and the distance, ' + str(userMiles) + ' miles, ' + ' is: ' + str(min) + ' - ' + str(max))
         print('The longitude min-max is: ' + str(longitude - (userMiles * ratio)) + ' , ' + str(
             longitude + (userMiles * ratio)))
         print('The latitude min-max is: ' + str(latitude - (userMiles * latRatio)) + ' , ' + str(
             latitude + (userMiles * latRatio)))
 
         minMaxLat = [minLat, maxLat]
-        #print(minMaxLat)
         minMaxLong = [minLong, maxLong]
-        #print(minMaxLong)
 
         return minMaxLat, minMaxLong
 
 
 def main():
-    #connobject = sqlconnect()
-    #conn = connobject.create_connection()
-    #with conn:
-    #    crime_id = connobject.queryIUCR(conn, '0486')
-    #    print(str(crime_id))
-
     new_report = createReport()
     new_report.createReportTemplate()
 
@@ -177,8 +173,6 @@ def main():
     #newgeo = geolocater()
     #newgeo.getAddress(33.9035792, -83.3390253)
     #newgeo.getCoordinatePair("128, Milford Dr, Georgia, 30605")
-    #SIU = (37.7100209, -89.2247828)
-    #home_address = (33.9035792, -83.3390253)
     #newgeo.findDistance(SIU, home_address)
 
     # Testing conversion of lat/long pair to miles at given latitude
@@ -187,29 +181,24 @@ def main():
     #with conn:
     #    connobj.convertLLMiles([37.26383, -83.3390153], 35)
 
-
-    # Demo of how columns work
-    # GUI has on row 1 a vertical slider followed by a COLUMN with 7 rows
-    # Prior to the Column element, this layout was not possible
-    # Columns layouts look identical to GUI layouts, they are a list of lists of elements.
-
     sg.ChangeLookAndFeel('BlueMono')
 
     #### Unique Value Counts -> Total: 1,456,715 ####
     # City Block -> 32,775
     # IUCR -> 366
     # Primary Type -> 34
+    # Description / Secondary Type -> 343
+    # Beat -> 303
+    # District -> 26
+    # Latitude -> 368,078
+    # Longitude -> 367,944
+
     primaryTypeList = ["ALL OF THE ABOVE", "BATTERY", "PUBLIC PEACE VIOLATION","THEFT", "WEAPONS VIOLATION", "ROBBERY", "MOTOR VEHICLE THEFT",
                         "ASSAULT", "OTHER OFFENSE", "DECEPTIVE PRACTICE", "CRIMINAL DAMAGE", "CRIMINAL TRESPASS", "BURGLARY",
                        "STALKING", "CRIM SEXUAL ASSAULT", "NARCOTICS", "SEX OFFENSE", "OBSCENITY", "OFFENSE INVOLVING CHILDREN",
                        "KIDNAPPING", "HOMICIDE", "INTERFERENCE WITH PUBLIC OFFICER", "PROSTITUTION", "GAMBLING", "INTIMIDATION",
                        "ARSON", "LIQUOR LAW VIOLATION", "NON-CRIMINAL", "PUBLIC INDECENCY", "HUMAN TRAFFICKING", "CONCEALED CARRY LICENSE VIOLATION",
                        "NON - CRIMINAL", "OTHER NARCOTIC VIOLATION", "NON-CRIMINAL (SUBJECT SPECIFIED)"]
-    # Description / Secondary Type -> 343
-    # Beat -> 303
-    # District -> 26
-    # Latitude -> 368,078
-    # Longitude -> 367,944
 
     # -- Column Layout -- #
     col = [[sg.Text('Date Range: ', text_color='white'), sg.CalendarButton('Start', key='-startdate-'), sg.CalendarButton('End', key='-enddate-')],
@@ -239,37 +228,31 @@ def main():
 
     while True:
         event, values = window.read()  # Read the event that happened and the values dictionary
-        #print(event, values)
         if event in (None, 'Exit'):  # If user closeddow with X or if user clicked "Exit" button then exit
             break
         if event == 'Submit':
-            #print('You pressed the button')
-            #print('The IUCR is: ' + values['-iucr-'])
-            #print('The Address is: ' + values['-address-'])
-            #print('The distance is: ' + values['-distance-'])
-            #print('The primary Type selected is:' + values['-primaryType-'])
-            #print('The selected date range is from: ' + str(values['-startdate-']) + ' to ' + str(values['-enddate-']))
+            print('You pressed the button')
 
             # -- Get information from the user's input once they press the Submit -- #
-            #print(values.keys())
-            #print(values.values())
             queryStatement = []
+            queryDict = dict(iucr = None, address = None, distance = None, primaryType = None, startdate = None, enddate = None)
 
             if values.get('-iucr-') != 'Select IUCR':
-                #print("IUCR IUCR: " + values['-iucr-'])
                 queryStatement.append(values['-iucr-'])
+                queryDict.update({"iucr": values.get('-iucr-')})
             if values.get('-address-') != 'Address':
                 test = geolocater()
                 coordPair = test.getCoordinatePair(str(values.get('-address-')))
                 coordPairAnswer = test.convertLLMiles(coordPair, int(values['-distance-']))
-                #print(coordPair)
-                #print(coordPairAnswer)
                 queryStatement.append(values['-address-'])
                 queryStatement.append(coordPairAnswer)
+                queryDict.update({"address": coordPairAnswer})
             if values.get('-distance-') != 'Distance':
                 queryStatement.append(values['-distance-'])
+                queryDict.update({"distance": values.get('-iucr-')})
             if values.get('-primaryType-') != 'Select Primary Type':
                 queryStatement.append(values['-primaryType-'])
+                queryDict.update({"primaryType": values.get('-distance-')})
             if values.get('-startdate-') != None and values.get('-enddate-') != None:
                 startdate = values['-startdate-']
                 sd = startdate.strftime("%m/%d/%Y %H:%M")
@@ -277,13 +260,22 @@ def main():
                 ed = enddate.strftime("%m/%d/%Y %H:%M")
                 queryStatement.append(sd)
                 queryStatement.append(ed)
+                queryDict.update({"startdate": sd})                queryDict.update({"enddate": ed})
             if len(queryStatement) >= 1:
                 print(queryStatement)
+                print(queryDict)
                 # TODO: Create custom query from results (filters) that the user expects and has input. Query the information and create the map
                 # TODO: Expand on the createReport class to allow for more methods to complete the project
             if len(queryStatement) == 0:
                 print("User did not input any filter requirements. Only querying the first 100 records.")
                 # TODO: Use SQL Connection object to query first 100 records and return ALL results.
+                connobject = sqlconnect()
+                conn = connobject.create_connection()
+                with conn:
+                    crime_id = connobject.queryDefault(conn)
+                    for crime in crime_id:
+                        print(str(crime))
+                conn.close()
 
 if __name__ == '__main__':
     main()
