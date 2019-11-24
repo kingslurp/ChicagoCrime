@@ -6,7 +6,72 @@ from geopy import *
 from geopy.distance import great_circle
 import geopy.geocoders
 import math
+import re
 import datetime
+
+
+# TODO: Function to take a dictionary and create / return a SQL query from it
+# Working example query: SELECT caseNumber, dateTime, latitude, longitude FROM crimes WHERE latitude <= 42.467514844927535 AND latitude >= 41.30809455507246;
+# This is for address of Chicago City Hall (121 N LaSalle St Chicago Illinois 60602)[41.8878047, -87.6325199])
+def genQuery(inputDictionary):
+    column_name = ''
+    main_query_string = ''
+
+    # Parse dictionary for filter items present
+    # Items considered NULL or not given if set to 'None'
+    # -- Find all columns the user has entered they want returned in query -- #
+    if inputDictionary['iucr'] != None:
+        column_name = column_name + 'iucr'
+        main_query_string += '(' + 'iucr = ' + str(inputDictionary['iucr']) + ')'
+    if inputDictionary['address'] != None:
+        if len(column_name) >= 1:
+            column_name = column_name + ', ' + 'streetBlock'
+            lat = inputDictionary['address']
+            lat_minmax = lat[0]
+            long_minmax = lat[1]
+            lat_min = lat_minmax[0]
+            lat_max = lat_minmax[1]
+            long_min = long_minmax[0]
+            long_max = long_minmax[1]
+
+            print('lat min: ' + str(lat_min))
+            print('lat max: ' + str(lat_max))
+            print('long min: ' + str(long_min))
+            print('long max: ' + str(long_max))
+
+            main_query_string += ' AND ' + '(' + 'latitude >= ' + str(lat_min) + ') AND (' + 'latitude <= ' + str(lat_max) + ') AND (' + 'longitude >= ' + str(long_min) + ') AND (' + 'longitude <= ' + str(long_max) + ')'
+        else:
+            lat = inputDictionary['address']
+            lat_minmax = lat[0]
+            long_minmax = lat[1]
+            lat_min = lat_minmax[0]
+            lat_max = lat_minmax[1]
+            long_min = long_minmax[0]
+            long_max = long_minmax[1]
+            column_name = column_name + 'streetBlock'
+            main_query_string += '(' + 'latitude >= ' + str(lat_min) + ') AND (' + 'latitude <= ' + str(lat_max) + ') AND (' + 'longitude >= ' + str(long_min) + ') AND (' + 'longitude <= ' + str(long_max) + ')'
+    if inputDictionary['primaryType'] != None:
+        if len(column_name) >= 1:
+            column_name = column_name + ', ' + 'primaryType'
+            main_query_string += ' AND (WHERE primaryType LIKE ' + '\"' + str(inputDictionary['primaryType']) + '\"' + ')'
+        else:
+            column_name = column_name + 'primaryType'
+            main_query_string += 'primaryType LIKE ' + '\"' + str(inputDictionary['primaryType']) + '\"'
+    if (inputDictionary['startdate'] != None) and (inputDictionary['enddate'] != None):
+        # Max range of dates is: 1/1/2012 00:00 to 9/9/2016 23:57
+        if len(column_name) >= 1:
+            column_name = column_name + ', ' + 'Date'
+            main_query_string += ' AND (WHERE Date BETWEEN date(' + str(inputDictionary['startdate']) + ') AND date(' + str(inputDictionary['enddate']) + ')'
+        else:
+            column_name = column_name + 'Date'
+            main_query_string += ' WHERE Date BETWEEN date(' + str(inputDictionary['startdate']) + ') AND date(' + str(inputDictionary['enddate'])
+    if len(column_name) >= 1:
+        main_query_string += ';'
+
+    # TODO: run regex against basesqlquery to confirm if the last item before the closing parenthesis is a comma, if so: remove it
+    baseSqlQuery = "SELECT " + column_name + " FROM crimes WHERE " + main_query_string
+    print("Testing SQLquery Builder: " + baseSqlQuery)
+
 
 
 class createReport:
@@ -249,10 +314,10 @@ def main():
                 queryDict.update({"address": coordPairAnswer})
             if values.get('-distance-') != 'Distance':
                 queryStatement.append(values['-distance-'])
-                queryDict.update({"distance": values.get('-iucr-')})
+                queryDict.update({"distance": values.get('-distance-')})
             if values.get('-primaryType-') != 'Select Primary Type':
                 queryStatement.append(values['-primaryType-'])
-                queryDict.update({"primaryType": values.get('-distance-')})
+                queryDict.update({"primaryType": values.get('-primaryType-')})
             if values.get('-startdate-') != None and values.get('-enddate-') != None:
                 startdate = values['-startdate-']
                 sd = startdate.strftime("%m/%d/%Y %H:%M")
@@ -260,11 +325,14 @@ def main():
                 ed = enddate.strftime("%m/%d/%Y %H:%M")
                 queryStatement.append(sd)
                 queryStatement.append(ed)
-                queryDict.update({"startdate": sd})                queryDict.update({"enddate": ed})
+                queryDict.update({"startdate": sd})
+                queryDict.update({"enddate": ed})
             if len(queryStatement) >= 1:
                 print(queryStatement)
                 print(queryDict)
                 # TODO: Create custom query from results (filters) that the user expects and has input. Query the information and create the map
+                # Testing QUERY BUILDER
+                genQuery(queryDict)
                 # TODO: Expand on the createReport class to allow for more methods to complete the project
             if len(queryStatement) == 0:
                 print("User did not input any filter requirements. Only querying the first 100 records.")
