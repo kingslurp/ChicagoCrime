@@ -24,3 +24,10 @@ Window #1: Request the user to select only the columns they wish to filter the r
 Windows #2-x: Request the user to further specify the details of the filters they chose in Window #1
 --> Background processing of user selected filters and data to be filtered for each to create SQLlite query -->
 Results Window: Ask the user to confirm the results to be mapped --> Create the map.html file using the results
+
+# TODO: Issues / Bugs
+# Issues Found:
+1.) If filters are left empty, the application still proceeds to the query building phase. In fact, the program will
+    always proceed if the filter contents are anything other than the default text string
+2.) Application crashes if user enters either of the address or distance filter, but not both
+

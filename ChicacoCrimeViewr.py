@@ -15,17 +15,49 @@ import datetime
 # This is for address of Chicago City Hall (121 N LaSalle St Chicago Illinois 60602)[41.8878047, -87.6325199])
 def genQuery(inputDictionary):
     column_name = ''
+    filter_counter = 0
     main_query_string = ''
+    listbox_length = len(inputDictionary['listbox'])
+    listbox_counter = 1
 
     # Parse dictionary for filter items present
     # Items considered NULL or not given if set to 'None'
     # -- Find all columns the user has entered they want returned in query -- #
+    if inputDictionary['listbox'] != 'None':
+        for item in inputDictionary['listbox']:
+            if item == 'IUCR':
+                item = 'iucr'
+            elif item == 'Case #':
+                item = 'caseNumber'
+            elif item == 'Date':
+                item = 'dateTime'
+            elif item == 'Primary Type':
+                item = 'primaryType'
+            elif item == 'Description':
+                item = 'description'
+            elif item == 'Block':
+                item = 'streetBlock'
+            elif item == 'Beat':
+                item = 'beat'
+            elif item == 'District':
+                item = 'district'
+            elif item == 'Latitude':
+                item = 'latitude'
+            elif item == 'Longitude':
+                item = 'longitude'
+
+            if listbox_counter < listbox_length:
+                column_name += str(item) + ', '
+                listbox_counter += 1
+            else:
+                column_name += str(item)
+                listbox_counter += 1
     if inputDictionary['iucr'] != None:
-        column_name = column_name + 'iucr'
+        filter_counter += 1
         main_query_string += '(' + 'iucr = ' + str(inputDictionary['iucr']) + ')'
     if inputDictionary['address'] != None:
-        if len(column_name) >= 1:
-            column_name = column_name + ', ' + 'streetBlock'
+        if filter_counter >= 1:
+            filter_counter += 1
             lat = inputDictionary['address']
             lat_minmax = lat[0]
             long_minmax = lat[1]
@@ -41,6 +73,7 @@ def genQuery(inputDictionary):
 
             main_query_string += ' AND ' + '(' + 'latitude >= ' + str(lat_min) + ') AND (' + 'latitude <= ' + str(lat_max) + ') AND (' + 'longitude >= ' + str(long_min) + ') AND (' + 'longitude <= ' + str(long_max) + ')'
         else:
+            filter_counter += 1
             lat = inputDictionary['address']
             lat_minmax = lat[0]
             long_minmax = lat[1]
@@ -48,28 +81,30 @@ def genQuery(inputDictionary):
             lat_max = lat_minmax[1]
             long_min = long_minmax[0]
             long_max = long_minmax[1]
-            column_name = column_name + 'streetBlock'
-            main_query_string += '(' + 'latitude >= ' + str(lat_min) + ') AND (' + 'latitude <= ' + str(lat_max) + ') AND (' + 'longitude >= ' + str(long_min) + ') AND (' + 'longitude <= ' + str(long_max) + ')'
+            main_query_string += 'WHERE (' + 'latitude >= ' + str(lat_min) + ') AND (' + 'latitude <= ' + str(lat_max) + ') AND (' + 'longitude >= ' + str(long_min) + ') AND (' + 'longitude <= ' + str(long_max) + ')'
     if inputDictionary['primaryType'] != None:
-        if len(column_name) >= 1:
-            column_name = column_name + ', ' + 'primaryType'
-            main_query_string += ' AND (WHERE primaryType LIKE ' + '\"' + str(inputDictionary['primaryType']) + '\"' + ')'
+        if filter_counter >= 1:
+            filter_counter += 1
+            main_query_string += ' AND (primaryType LIKE ' + '\"' + str(inputDictionary['primaryType']) + '\"' + ')'
         else:
-            column_name = column_name + 'primaryType'
-            main_query_string += 'primaryType LIKE ' + '\"' + str(inputDictionary['primaryType']) + '\"'
+            filter_counter += 1
+            main_query_string += 'WHERE primaryType LIKE ' + '\"' + str(inputDictionary['primaryType']) + '\"'
     if (inputDictionary['startdate'] != None) and (inputDictionary['enddate'] != None):
         # Max range of dates is: 1/1/2012 00:00 to 9/9/2016 23:57
-        if len(column_name) >= 1:
-            column_name = column_name + ', ' + 'Date'
+        if filter_counter >= 1:
+            filter_counter += 1
             main_query_string += ' AND (WHERE Date BETWEEN date(' + str(inputDictionary['startdate']) + ') AND date(' + str(inputDictionary['enddate']) + ')'
         else:
-            column_name = column_name + 'Date'
-            main_query_string += ' WHERE Date BETWEEN date(' + str(inputDictionary['startdate']) + ') AND date(' + str(inputDictionary['enddate'])
-    if len(column_name) >= 1:
+            filter_counter += 1
+            main_query_string += 'Date BETWEEN date(' + str(inputDictionary['startdate']) + ') AND date(' + str(inputDictionary['enddate'])
+    if filter_counter >= 1:
         main_query_string += ';'
 
     # TODO: run regex against basesqlquery to confirm if the last item before the closing parenthesis is a comma, if so: remove it
-    baseSqlQuery = "SELECT " + column_name + " FROM crimes WHERE " + main_query_string
+    if len(main_query_string) == 0:
+        baseSqlQuery = "SELECT " + column_name + " FROM crimes"
+    elif len(main_query_string) > 0:
+        baseSqlQuery = "SELECT " + column_name + " FROM crimes " + main_query_string
     print("Testing SQLquery Builder: " + baseSqlQuery)
 
 
@@ -164,12 +199,19 @@ class sqlconnect:
             ids = cursor.fetchall()
         return ids
 
+    # Query All
+    def queryAllDates(self, conn):
+        with conn:
+            cursor = conn.cursor()
+            cursor.execute("SELECT dateTime FROM crimes LIMIT -1 OFFSET 1")
+            ids = cursor.fetchall()
+        return ids
+
 
 # -- Class for translation and calculation of geocoordinates and distance values -- #
 class geolocater():
     def __init__(self):
         pass
-
 
     def getAddress(self, lat, long):
         geo = Nominatim(user_agent="ChicagoCrimeQuery")
@@ -266,7 +308,7 @@ def main():
                        "NON - CRIMINAL", "OTHER NARCOTIC VIOLATION", "NON-CRIMINAL (SUBJECT SPECIFIED)"]
 
     # -- Column Layout -- #
-    col = [[sg.Text('Date Range: ', text_color='white'), sg.CalendarButton('Start', key='-startdate-'), sg.CalendarButton('End', key='-enddate-')],
+    col = [[sg.Text('Date Range: ', text_color='white'), sg.CalendarButton('Start', key='-startdate-', default_date_m_d_y=(1, 1, 2012)), sg.CalendarButton('End', key='-enddate-', default_date_m_d_y=(5, 1, 2016))],
            [sg.Text('Select IUCR:', text_color='white'), sg.Input('Select IUCR', key='-iucr-')],
            [sg.Text('Select Primary Type:', text_color='white'), sg.OptionMenu(primaryTypeList, 'Select Primary Type', key='-primaryType-')]
            ]
@@ -278,8 +320,8 @@ def main():
 
     # -- GUI Definition -- #
     layout = [[sg.Text('Select all options that will display when mapped.')],
-              [sg.Listbox(values=('Case #', 'Date', 'Block', 'IUCR', 'Primary Type', 'Description', 'Beat', 'District', 'Latitude', 'Longitude'),
-                          select_mode=sg.LISTBOX_SELECT_MODE_MULTIPLE, no_scrollbar=True, size=(20, 12)), sg.Column(col), sg.Column(col1)],
+              [sg.Listbox(default_values='None' , values=('Case #', 'Date', 'Block', 'IUCR', 'Primary Type', 'Description', 'Beat', 'District', 'Latitude', 'Longitude'),
+                          select_mode=sg.LISTBOX_SELECT_MODE_MULTIPLE, no_scrollbar=True, size=(20, 12), key='-listbox-'), sg.Column(col), sg.Column(col1)],
               [sg.Button('Submit')]]
 
 
@@ -302,17 +344,19 @@ def main():
             queryStatement = []
             queryDict = dict(iucr = None, address = None, distance = None, primaryType = None, startdate = None, enddate = None)
 
+            if values.get('-listbox-') != 'None':
+                queryStatement.append((values['-listbox-']))
+                queryDict.update({"listbox": values.get('-listbox-')})
             if values.get('-iucr-') != 'Select IUCR':
                 queryStatement.append(values['-iucr-'])
                 queryDict.update({"iucr": values.get('-iucr-')})
-            if values.get('-address-') != 'Address':
+            if values.get('-address-') != 'Address' and values.get('-distance-') != 'Distance':
                 test = geolocater()
                 coordPair = test.getCoordinatePair(str(values.get('-address-')))
                 coordPairAnswer = test.convertLLMiles(coordPair, int(values['-distance-']))
                 queryStatement.append(values['-address-'])
                 queryStatement.append(coordPairAnswer)
                 queryDict.update({"address": coordPairAnswer})
-            if values.get('-distance-') != 'Distance':
                 queryStatement.append(values['-distance-'])
                 queryDict.update({"distance": values.get('-distance-')})
             if values.get('-primaryType-') != 'Select Primary Type':
@@ -320,13 +364,17 @@ def main():
                 queryDict.update({"primaryType": values.get('-primaryType-')})
             if values.get('-startdate-') != None and values.get('-enddate-') != None:
                 startdate = values['-startdate-']
-                sd = startdate.strftime("%m/%d/%Y %H:%M")
+                #sd = startdate.strftime("%m/%d/%Y %H:%M")
                 enddate = values['-enddate-']
-                ed = enddate.strftime("%m/%d/%Y %H:%M")
-                queryStatement.append(sd)
-                queryStatement.append(ed)
-                queryDict.update({"startdate": sd})
-                queryDict.update({"enddate": ed})
+                #ed = enddate.strftime("%m/%d/%Y %H:%M")
+                #queryStatement.append(sd)
+                #queryStatement.append(ed)
+                queryStatement.append(startdate)
+                queryStatement.append(enddate)
+                #queryDict.update({"startdate": sd})
+                #queryDict.update({"enddate": ed})
+                queryDict.update({"startdate": startdate})
+                queryDict.update({"enddate": enddate})
             if len(queryStatement) >= 1:
                 print(queryStatement)
                 print(queryDict)
