@@ -1,6 +1,8 @@
 .schema = create table crimes(id integer, caseNumber text, dateTime text, streetBlock text, iucr integer, primaryType text,
 description text, beat integer, district integer, latitude real, longitude real);
 
+
+DB Format:
 {
   "rows" : [
     {
@@ -27,7 +29,20 @@ Results Window: Ask the user to confirm the results to be mapped --> Create the 
 
 # TODO: Issues / Bugs
 # Issues Found:
-1.) If filters are left empty, the application still proceeds to the query building phase. In fact, the program will
+1.) |_| If filters are left empty, the application still proceeds to the query building phase. In fact, the program will
     always proceed if the filter contents are anything other than the default text string
-2.) Application crashes if user enters either of the address or distance filter, but not both
-3.) Fails on the user pressing 'Submit' without any filter entries
+2.) |X| Application crashes if user enters either of the address or distance filter, but not both
+3.) |_| Fails on the user pressing 'Submit' by way of returning way too many results. Query will take a very long time
+4.) |_| Add try / catch exception for the connection to pygeo for timeout errors so that it tries again at least once after 10 seconds.
+5.) |X| Query fails for date/time because format wrong in sqlite db
+7.) |X| Limit start and end dates to dateset for dataset
+8.) |X| If the user does not select Longitude / Latitude in the listbox, it is not included in the query which breaks the whole application
+        --> Resolution: Forced the application to append the lat / long to the listbox results returned
+
+# TODO: Items that would be useful
+1.) |_| Loading bar / Progress bar
+2.) |_| Auto-Launch Default web browser to open report.html
+        A.) Get current OS
+        B.) Based on current OS, get current default web browser / executable location
+        C.) Open the report.html that was just created in the default web browser
+            i.) When the user presses the 'Submit' button, check to see if report.html is already open. If it is, refresh it. If not, execute step C.

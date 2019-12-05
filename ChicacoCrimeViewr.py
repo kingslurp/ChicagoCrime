@@ -477,7 +477,7 @@ def main():
                         output_string += "</p>\").addTo(mymap);"
                         final_output_string = output_string
                         new_report.update_results(final_output_string)
-                        print(final_output_string)
+                        #print(final_output_string)
                         print("Progress: " + str((progress_counter / len(crime_id)) * 100))
                         progress_counter += 1
                 new_report.createReportTemplate()
