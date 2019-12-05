@@ -30,4 +30,4 @@ Results Window: Ask the user to confirm the results to be mapped --> Create the 
 1.) If filters are left empty, the application still proceeds to the query building phase. In fact, the program will
     always proceed if the filter contents are anything other than the default text string
 2.) Application crashes if user enters either of the address or distance filter, but not both
-
+3.) Fails on the user pressing 'Submit' without any filter entries

@@ -81,19 +81,19 @@ def genQuery(inputDictionary):
             lat_max = lat_minmax[1]
             long_min = long_minmax[0]
             long_max = long_minmax[1]
-            main_query_string += 'WHERE (' + 'latitude >= ' + str(lat_min) + ') AND (' + 'latitude <= ' + str(lat_max) + ') AND (' + 'longitude >= ' + str(long_min) + ') AND (' + 'longitude <= ' + str(long_max) + ')'
+            main_query_string += ' (' + 'latitude >= ' + str(lat_min) + ') AND (' + 'latitude <= ' + str(lat_max) + ') AND (' + 'longitude >= ' + str(long_min) + ') AND (' + 'longitude <= ' + str(long_max) + ')'
     if inputDictionary['primaryType'] != None:
         if filter_counter >= 1:
             filter_counter += 1
             main_query_string += ' AND (primaryType LIKE ' + '\"' + str(inputDictionary['primaryType']) + '\"' + ')'
         else:
             filter_counter += 1
-            main_query_string += 'WHERE primaryType LIKE ' + '\"' + str(inputDictionary['primaryType']) + '\"'
+            main_query_string += ' primaryType LIKE ' + '\"' + str(inputDictionary['primaryType']) + '\"'
     if (inputDictionary['startdate'] != None) and (inputDictionary['enddate'] != None):
-        # Max range of dates is: 1/1/2012 00:00 to 9/9/2016 23:57
+        # Max range of dates is: 1/1/2012 00:00:00.000 to 9/9/2016 23:57:00.000
         if filter_counter >= 1:
             filter_counter += 1
-            main_query_string += ' AND (WHERE Date BETWEEN date(' + str(inputDictionary['startdate']) + ') AND date(' + str(inputDictionary['enddate']) + ')'
+            main_query_string += ' AND (dateTime BETWEEN date(' + '\"' + str(inputDictionary['startdate']) + '\"' + ') AND date(' + '\"' + str(inputDictionary['enddate']) + '\"' + '))'
         else:
             filter_counter += 1
             main_query_string += 'Date BETWEEN date(' + str(inputDictionary['startdate']) + ') AND date(' + str(inputDictionary['enddate'])
@@ -104,23 +104,35 @@ def genQuery(inputDictionary):
     if len(main_query_string) == 0:
         baseSqlQuery = "SELECT " + column_name + " FROM crimes"
     elif len(main_query_string) > 0:
-        baseSqlQuery = "SELECT " + column_name + " FROM crimes " + main_query_string
+        baseSqlQuery = "SELECT " + column_name + " FROM crimes WHERE" + main_query_string
     print("Testing SQLquery Builder: " + baseSqlQuery)
+
+    return baseSqlQuery
 
 
 
 class createReport:
-    def __init__(self):
+    def __init__(self, provided_distance, coordinates):
+        self.provided_dist = provided_distance
+        self.coord = coordinates
+        self.returned_results = ""
+
         pass
+
+
+    def update_results(self, new_string):
+        self.returned_results += new_string
 
 
     def createReportTemplate(self):
         report = "reportfile.html"
-        html_default = """
+        pin_information = "<p>Hello world!<br />This is a nice popup.</p>"
+        html_default_head = """
+               
                 <!DOCTYPE html>
                 <html>
                 <head>
-                    <title>Quick Start - Leaflet</title>
+                    <title>Chicago Crimes 2012-2016 (Filtered Results)</title>
                     <meta charset="utf-8" />
                     <meta name="viewport" content="width=device-width, initial-scale=1.0">
                     <link rel="shortcut icon" type="image/x-icon" href="docs/images/favicon.ico" />
@@ -129,9 +141,26 @@ class createReport:
                 </head>
                 <body>
                 
-                <div id="mapid" style="width: 600px; height: 400px;"></div>
+                <div id="mapid" style="width: 1200px; height: 800px;"></div>
+                
+                """
+
+        html_default_script = """
                 <script>
-                    var mymap = L.map('mapid').setView([51.505, -0.09], 13);
+                    // Variables for coordinates
+                    var coordinates = {coord}
+
+                    // Distance variables
+                    var provided_distance = {provided_dist}
+                    var distance_in_meters = (provided_distance * 1609.34)
+
+                    // Map variables
+                    var mymap = L.map('mapid').setView(coordinates, 11.35);
+                    
+                    """.format(coord = self.coord, provided_dist= self.provided_dist)
+
+        html_default_script1 = """
+
                     L.tileLayer('https://api.tiles.mapbox.com/v4/{id}/{z}/{x}/{y}.png?access_token=pk.eyJ1IjoibWFwYm94IiwiYSI6ImNpejY4NXVycTA2emYycXBndHRqcmZ3N3gifQ.rJcFIG214AriISLbB6B5aw', {
                         maxZoom: 18,
                         attribution: 'Map data &copy; <a href="https://www.openstreetmap.org/">OpenStreetMap</a> contributors, ' +
@@ -139,18 +168,51 @@ class createReport:
                             'Imagery © <a href="https://www.mapbox.com/">Mapbox</a>',
                         id: 'mapbox.streets'
                     }).addTo(mymap);
+
+                    var LeafIcon = L.Icon.extend({
+                        options: {
+                            iconUrl: 'hacker.png',
+                            iconAnchor:   [22, 94],
+                            shadowAnchor: [4, 62],
+                            popupAnchor:  [-3, -76]
+                        }
+                    });
+                    
+                    var HouseIcon = L.Icon.extend({
+                        options: {
+                            iconUrl: 'house.png',
+                            iconAnchor:   [22, 94],
+                            shadowAnchor: [4, 62],
+                            popupAnchor:  [-3, -76]
+                        }
+                    });
+
+                    // Types of icons
+                    var defaultIcon = new LeafIcon({iconUrl: 'hacker.png'})
+                    var homeIcon = new HouseIcon({iconUrl: 'house.png'})
+
+                    // Draw the circle radius around the area of focus on the map
+                    L.circle(coordinates, radius=distance_in_meters).addTo(mymap)
+
+                    // Section to create the markers for each returned point from the Query
+                    L.marker(coordinates, {iconAnchor: coordinates, icon: homeIcon}).bindPopup("<p>Hello world!<br />This is a nice popup.</p>").addTo(mymap);
+                """
+
+
+        html_default_script2 = """
                 </script>
                 </body>
                 </html>
                 """
+
         if os.path.exists(report):
             os.remove(report)
             report = open(report, "a")
-            report.write(html_default)
+            report.write(html_default_head + html_default_script + html_default_script1 + self.returned_results + html_default_script2)
             report.close()
         else:
             report = open(report, "a")
-            report.write(html_default)
+            report.write(html_default_head + html_default_script + html_default_script1 + self.returned_results + html_default_script2)
             report.close()
 
 
@@ -196,6 +258,14 @@ class sqlconnect:
         with conn:
             cursor = conn.cursor()
             cursor.execute("SELECT * FROM crimes LIMIT 100")
+            ids = cursor.fetchall()
+        return ids
+
+    # -- Used to run query returned from genQuery -- #
+    def queryGeneric(self, conn, gen_query):
+        with conn:
+            cursor = conn.cursor()
+            cursor.execute(gen_query)
             ids = cursor.fetchall()
         return ids
 
@@ -273,10 +343,6 @@ class geolocater():
 
 
 def main():
-    new_report = createReport()
-    new_report.createReportTemplate()
-
-
     #newgeo = geolocater()
     #newgeo.getAddress(33.9035792, -83.3390253)
     #newgeo.getCoordinatePair("128, Milford Dr, Georgia, 30605")
@@ -346,6 +412,12 @@ def main():
 
             if values.get('-listbox-') != 'None':
                 queryStatement.append((values['-listbox-']))
+                if 'Longitude' not in values['-listbox-']:
+                    #print("You didn't select longitude, we added it for you.") # TODO: Set to not force the long / lat where the user is aware
+                    values['-listbox-'].append('Longitude')
+                if 'Latitude' not in values['-listbox-']:
+                    #print("You didn't select latitude, we added it for you.") # TODO: Set to not force the long / lat where the user is aware
+                    values['-listbox-'].append('Latitude')
                 queryDict.update({"listbox": values.get('-listbox-')})
             if values.get('-iucr-') != 'Select IUCR':
                 queryStatement.append(values['-iucr-'])
@@ -364,27 +436,55 @@ def main():
                 queryDict.update({"primaryType": values.get('-primaryType-')})
             if values.get('-startdate-') != None and values.get('-enddate-') != None:
                 startdate = values['-startdate-']
-                #sd = startdate.strftime("%m/%d/%Y %H:%M")
+                sd = startdate.strftime("%Y-%m-%d %H:%M:%S.%f")[:-3]
                 enddate = values['-enddate-']
-                #ed = enddate.strftime("%m/%d/%Y %H:%M")
-                #queryStatement.append(sd)
-                #queryStatement.append(ed)
-                queryStatement.append(startdate)
-                queryStatement.append(enddate)
-                #queryDict.update({"startdate": sd})
-                #queryDict.update({"enddate": ed})
-                queryDict.update({"startdate": startdate})
-                queryDict.update({"enddate": enddate})
+                ed = enddate.strftime("%Y-%m-%d %H:%M:%S.%f")[:-3]
+                queryStatement.append(sd)
+                queryStatement.append(ed)
+                #queryStatement.append(startdate)
+                #queryStatement.append(enddate)
+                queryDict.update({"startdate": sd})
+                queryDict.update({"enddate": ed})
+                #queryDict.update({"startdate": startdate})
+                #queryDict.update({"enddate": enddate})
             if len(queryStatement) >= 1:
+                # Create the report here
+                new_report = createReport("10", "[41.8878047, -87.6325199]")  # TODO: Need to update to take the query dictionary to load each row with the correct items into the popups
+
                 print(queryStatement)
                 print(queryDict)
-                # TODO: Create custom query from results (filters) that the user expects and has input. Query the information and create the map
                 # Testing QUERY BUILDER
-                genQuery(queryDict)
+                fullQuery = genQuery(queryDict)
+                connobject = sqlconnect()
+                conn = connobject.create_connection()
+                columnDict = queryDict['listbox']
+                #print("Current query dictionary that will be used for headers: \n" + str(columnDict))
+                #print("The type of columnDict variable is: " + str(type(columnDict)))
+                with conn:
+                    counter = len(columnDict)
+                    crime_id = connobject.queryGeneric(conn, fullQuery)
+                    final_output_string = ""
+                    progress_counter = 0
+                    for crime in crime_id:
+                        this_coord = "[" + str(crime[-1]) + ", " + str(crime[-2]) + "]"
+                        output_string = "L.marker({each_coord}, ".format(each_coord = this_coord) + "{iconAnchor: " + "{each_coord}, icon: defaultIcon".format(each_coord = this_coord) + "}).bindPopup(" +  "\"<p>"
+                        #print(str(crime))
+                        #print(type(crime)) -> Type of crime is tuple
+                        counter = 0
+                        for crime_tuple in crime:
+                            output_string += str(columnDict[counter]) + " : " + str(crime_tuple) + "<br />"
+                            counter += 1
+                        output_string += "</p>\").addTo(mymap);"
+                        final_output_string = output_string
+                        new_report.update_results(final_output_string)
+                        print(final_output_string)
+                        print("Progress: " + str((progress_counter / len(crime_id)) * 100))
+                        progress_counter += 1
+                new_report.createReportTemplate()
+                conn.close()
                 # TODO: Expand on the createReport class to allow for more methods to complete the project
             if len(queryStatement) == 0:
                 print("User did not input any filter requirements. Only querying the first 100 records.")
-                # TODO: Use SQL Connection object to query first 100 records and return ALL results.
                 connobject = sqlconnect()
                 conn = connobject.create_connection()
                 with conn:
