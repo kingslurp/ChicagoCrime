@@ -126,7 +126,7 @@ class createReport:
 
     def createReportTemplate(self):
         report = "reportfile.html"
-        pin_information = "<p>Hello world!<br />This is a nice popup.</p>"
+        pin_information = "<p>Hello!<br />This is the location of the address that you entered.</p>"
         html_default_head = """
                
                 <!DOCTYPE html>

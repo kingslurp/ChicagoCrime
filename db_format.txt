@@ -38,6 +38,13 @@ Results Window: Ask the user to confirm the results to be mapped --> Create the 
 7.) |X| Limit start and end dates to dateset for dataset
 8.) |X| If the user does not select Longitude / Latitude in the listbox, it is not included in the query which breaks the whole application
         --> Resolution: Forced the application to append the lat / long to the listbox results returned
+9.) |X| Formatting incorrect on SQL statement created; creates two "FROM" items and two "WHERE" items without spaces in between
+10.) |X| Formatting on .bindPopup leaflet javascript function requires a string format but within another string
+        --> Resolution: used escape "\" character to allow for addition of double quotes to string
+11.) |X| The format of the datetime string returned from each of the startdate and enddate objects are not in the correct format
+12.) |_| All of the above option does not work. Logically can remove it and if they don't filter it by that it selects all
+13.) |X| Two different icons are necessary as it is not possible to see the home address and the other plotted points
+
 
 # TODO: Items that would be useful
 1.) |_| Loading bar / Progress bar
